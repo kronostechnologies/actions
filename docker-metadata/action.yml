@@ -1,0 +1,66 @@
+name: Resolve docker metadata
+description: Resolve docker metadata such as tags and OCI labels.
+
+inputs:
+  title:
+    description: Human-readable name of this image.
+    required: true
+  image-name:
+    description: The image name, optionally prepended by a registry URL.
+    required: true
+  release:
+    description: Set to 'true' to treat this version as a release. 'version' must then be compatible with SemVer.
+    required: false
+    default: "false"
+  version:
+    description: The version identifier.
+    required: true
+
+outputs:
+  labels:
+    description: A line-separated list of OCI labels to pass to the docker build command.
+    value: ${{ steps.metadata.outputs.labels }}
+  tags:
+    description: A comma-separated list of tags to pass to the docker build command.
+    value: ${{ steps.metadata.outputs.tags }}
+
+runs:
+  using: composite
+  steps:
+    - name: Find application metadata
+      id: metadata
+      shell: bash
+      run: |
+        DOCKER_IMAGE=${{ inputs.image-name }}
+        RELEASE=${{ inputs.release }}
+        VERSION=${{ inputs.version }}
+        COMMIT_SHA=${{ github.sha }}
+
+        if [ "$RELEASE" = "true" ]; then
+          MINOR=${VERSION%.*}
+          MAJOR=${MINOR%.*}
+          TAGS="${DOCKER_IMAGE}:v${VERSION},${DOCKER_IMAGE}:version-${VERSION},${DOCKER_IMAGE}:${MINOR},${DOCKER_IMAGE}:${MAJOR},${DOCKER_IMAGE}:latest"
+        else
+          TAGS="${DOCKER_IMAGE}:${VERSION},${DOCKER_IMAGE}:edge"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAGS="${TAGS},${DOCKER_IMAGE}:sha-${COMMIT_SHA::8}"
+          fi
+        fi
+
+        LABELS=$(cat <<END
+        org.opencontainers.image.title=${{ inputs.title }}
+        org.opencontainers.image.description=${{ github.event.repository.description }}
+        org.opencontainers.image.url=${{ github.event.repository.html_url }}
+        org.opencontainers.image.source=${{ github.event.repository.html_url }}
+        org.opencontainers.image.version=${VERSION}
+        org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        org.opencontainers.image.revision=${COMMIT_SHA}
+        org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
+        END
+        )
+        LABELS="${LABELS//'%'/'%25'}"
+        LABELS="${LABELS//$'\n'/'%0A'}"
+        LABELS="${LABELS//$'\r'/'%0D'}"
+
+        echo "::set-output name=tags::${TAGS}"
+        echo "::set-output name=labels::${LABELS}"
