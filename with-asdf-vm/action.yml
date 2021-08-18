@@ -29,5 +29,5 @@ runs:
 
     - name: Switch to the asdf-provided version of java
       run: |
-        echo "grep java .tool-versions && JAVA_HOME=$(dirname "$(dirname "$(realpath "$(asdf which java)")")")" >> $GITHUB_ENV;
+        grep java .tool-versions && echo "JAVA_HOME=$(dirname "$(dirname "$(realpath "$(asdf which java)")")")" >> $GITHUB_ENV || true
       shell: bash
