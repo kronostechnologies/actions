@@ -1,0 +1,33 @@
+name: Setup asdf-vm with cache
+description: |
+  Will download asdf-vm with cache.
+  Initialize JAVA_HOME if java is specified in .tool-version
+
+inputs: {}
+outputs: {}
+
+runs:
+  using: composite
+  steps:
+    - name: Install asdf-vm
+      uses: asdf-vm/actions/setup@v1.1.0
+
+    - name: Cache asdf tooling
+      uses: actions/cache@v2.1.6
+      with:
+        key: asdf-${{ runner.os }}-${{ hashFiles('.tool-versions') }}
+        restore-keys: asdf-${{ runner.os }}-
+        path: |
+          ${ASDF_DIR}/installs
+          ${ASDF_DIR}/plugins
+
+    - name: Install asdf-vm tools
+      uses: asdf-vm/actions/install@v1.1.0
+      with:
+        before_install: |
+          test -x ${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring && ${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring || true
+
+    - name: Switch to the asdf-provided version of java
+      run: |
+        echo "grep java .tool-versions && JAVA_HOME=$(dirname "$(dirname "$(realpath "$(asdf which java)")")")" >> $GITHUB_ENV;
+      shell: bash
