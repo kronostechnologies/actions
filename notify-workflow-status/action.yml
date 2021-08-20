@@ -1,0 +1,70 @@
+name: Notify us when a workflow failure happens
+description: |
+  Push a whole workflow result to a Slack webhook.
+
+  ```yaml
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Find workflow status
+      id: workflow
+      shell: bash
+      run: |
+        STATUS=success
+        if [[ "$ {{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+          STATUS=cancelled
+        elif [[ "$ {{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+          STATUS=failure
+        fi
+
+        echo ::set-output name=status::$STATUS
+    - name: Post status to Slack
+      uses: kronostechnologies/actions/notify-workflow-status@v1
+      with:
+        slack-webhook-url: "some url generated on slack"
+        workflow-status: $ {{ steps.workflow.outputs.status }}
+  ```
+
+inputs:
+  slack-webhook-url:
+    description: The Slack webhook that will receive our notifications.
+    required: true
+  workflow-status:
+    description: The workflow status. Must be one of success, cancelled or failure.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Post status to Slack
+      uses: 8398a7/action-slack@v3.9.2
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
+      with:
+        author_name: CI Results
+        fields: repo,commit,author,ref,workflow,message
+        status: custom
+        custom_payload: |
+          {
+            attachments: [{
+              color: '${{ inputs.workflow-status }}' === 'success' ? 'good' : '${{ inputs.workflow-status }}' === 'failure' ? 'danger' : '#999999',
+              text: `${process.env.AS_REPO}/${process.env.AS_WORKFLOW}: ${{ inputs.workflow-status }}!`,
+              fields: [
+                {
+                  title: 'Ref',
+                  value: `${process.env.AS_REF}`,
+                  short: true
+                },
+                {
+                  title: 'Commit',
+                  value: `${process.env.AS_COMMIT}`,
+                  short: true
+                },
+                {
+                  title: 'Description',
+                  value: `${process.env.AS_MESSAGE}`,
+                  short: false
+                }
+              ]
+            }]
+          }

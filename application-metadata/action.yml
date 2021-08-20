@@ -11,28 +11,12 @@ description: |
       with:
         fetch-depth: 0
 
-    - name: Find latest released version
-      id: latest
-      uses: oprypin/find-latest-tag@v1
-      continue-on-error: true
-      with:
-        repository: $ {{ github.repository }}
-        releases-only: false
-        prefix: v
-        regex: '^v\d+\.\d+\.\d+$'
-        sort-tags: true
-
     - name: Find application metadata
       id: metadata
       uses: .github/actions/application-metadata
-      with:
-        latest-release-tag: $ {{ steps.latest.outputs.tag }}
   ```
 
-inputs:
-  latest-release-tag:
-    description: The tag pointing to the latest released version.
-    required: false
+inputs: {}
 
 outputs:
   publishable:
@@ -55,6 +39,16 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Find latest released version
+      id: latest
+      uses: oprypin/find-latest-tag@v1.1.0
+      with:
+        repository: ${{ github.repository }}
+        releases-only: false
+        prefix: v
+        regex: '^v\d+\.\d+\.\d+$'
+        sort-tags: true
+
     - name: Find application metadata
       id: metadata
       shell: bash
@@ -64,7 +58,7 @@ runs:
         VERSION=0.0.0-SNAPSHOT
         DEFAULT_BRANCH=${{ github.event.repository.default_branch }}
 
-        LATEST_VERSION=${{ inputs.latest-release-tag }}
+        LATEST_VERSION=${{ steps.latest.outputs.tag }}
         LATEST_VERSION=${LATEST_VERSION#v}
         LATEST_VERSION=${LATEST_VERSION:-0.0.0}
 
