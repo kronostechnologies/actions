@@ -21,7 +21,7 @@ inputs:
 
 outputs:
   cache-hit:
-    description: A boolean value to indicate an exact match was found for the key.
+    description: A boolean value to indicate the dependencies were loaded from an exact cache hit.
     value: ${{ steps.cache.outputs.cache-hit }}
   version:
     description: The Yarn version detected in the specified working directory.
