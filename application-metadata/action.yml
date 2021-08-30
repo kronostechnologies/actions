@@ -29,7 +29,7 @@ outputs:
       'true' if this build should create a full release. Only 'publishable' builds can be released. A release is
         typically triggered from a tag matching the 'v1.2.3', semver format.
       'false' if this build should not create a full release.
-    value: ${{ steps.metadata.outputs.is_release }}
+    value: ${{ steps.metadata.outputs.is-release }}
   version:
     description: |
       The resolved version that the current build can use.
