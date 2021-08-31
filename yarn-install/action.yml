@@ -1,0 +1,77 @@
+name: Install Yarn dependencies with Yarn and caching.
+description: |
+  Install Yarn dependencies with Yarn. By default, the action will use a rolling cache key to prevent the cache size
+  from snowballing.
+
+inputs:
+  options:
+    description: Extra options to pass to the `yarn` command line.
+    required: false
+  use-rolling-cache:
+    description: |
+      Add a partial timestamp to the cache key to invalidate it every so often. This is to prevent the cache size from
+      snowballing. Disabling this option could result in the cache size becoming very large over time and potentially
+      having a negative impact on build times.
+    required: false
+    default: "true"
+  working-directory:
+    description: Used to change the working directory where yarn will run.
+    required: false
+    default: .
+
+outputs:
+  cache-hit:
+    description: A boolean value to indicate the dependencies were loaded from an exact cache hit.
+    value: ${{ steps.cache.outputs.cache-hit }}
+  version:
+    description: The Yarn version detected in the specified working directory.
+    value: ${{ steps.yarn.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Lookup Yarn version
+      id: yarn
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        version=$(yarn --version)
+        cache_dir=
+        cache_key=
+        cache_restore_keys=
+
+        if [[ $version == 1.* ]]; then
+          cache_dir=$(yarn cache dir)
+        else
+          cache_dir=$(yarn config get cacheFolder)
+        fi
+
+        cache_key="yarn-$version-${{ runner.os }}"
+        if [[ "${{ inputs.use-rolling-cache }}" == "true" ]]; then
+          cache_key="$cache_key-$(printf '%(%Y%m)T' -1)"
+        fi
+        cache_restore_keys="$cache_key-"
+        cache_key="$cache_key-${{ hashFiles(format('{0}/yarn.lock', env.working-directory)) }}"
+
+        echo "::set-output name=version::$version"
+        echo "::set-output name=cache-dir::$cache_dir"
+        echo "::set-output name=cache-key::$cache_key"
+        echo "::set-output name=cache-restore-keys::$cache_restore_keys"
+
+    - name: Cache Yarn packages
+      uses: actions/cache@v2.1.6
+      id: cache
+      with:
+        key: ${{ steps.yarn.outputs.cache-key }}
+        path: ${{ steps.yarn.outputs.cache-dir }}
+        restore-keys: ${{ steps.yarn.outputs.cache-restore-keys }}
+
+    - name: Install Yarn dependencies
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        if [[ ${{ steps.yarn.outputs.version }} == 1.* ]]; then
+          yarn install ${{ inputs.options }} --frozen-lockfile
+        else
+          yarn install ${{ inputs.options }} --immutable
+        fi

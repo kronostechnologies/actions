@@ -4,7 +4,11 @@ description: |
   Initialize JAVA_HOME if java is specified in .tool-version
 
 inputs: {}
-outputs: {}
+
+outputs:
+  cache-hit:
+    description: A boolean value to indicate the dependencies were loaded from an exact cache hit.
+    value: ${{ steps.cache.outputs.cache-hit }}
 
 runs:
   using: composite
@@ -14,20 +18,33 @@ runs:
 
     - name: Cache asdf tooling
       uses: actions/cache@v2.1.6
+      id: cache
       with:
         key: asdf-${{ runner.os }}-${{ hashFiles('.tool-versions') }}
-        restore-keys: asdf-${{ runner.os }}-
         path: |
-          ${ASDF_DIR}/installs
-          ${ASDF_DIR}/plugins
+          ${{ env.ASDF_DIR }}/installs
+          ${{ env.ASDF_DIR }}/plugins
 
     - name: Install asdf-vm tools
       uses: asdf-vm/actions/install@v1.1.0
+      # TODO: Waiting for `if` support https://github.com/actions/runner/issues/834
+      #  if: steps.cache.outputs.cache-hit != 'true'
       with:
         before_install: |
-          test -x ${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring && ${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring || true
+          if [[ "${{ steps.cache.outputs.cache-hit }}" != true ]] && [ -f "${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring" ]; then
+            ${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring
+          fi
+
+    - name: Reshim asdf-vm tools
+      # TODO: Waiting for `if` support https://github.com/actions/runner/issues/834
+      #  if: steps.cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        if [[ "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
+          asdf reshim
+        fi
 
     - name: Switch to the asdf-provided version of java
+      shell: bash
       run: |
         grep java .tool-versions && echo "JAVA_HOME=$(dirname "$(dirname "$(realpath "$(asdf which java)")")")" >> $GITHUB_ENV || true
-      shell: bash
