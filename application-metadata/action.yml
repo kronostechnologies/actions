@@ -35,6 +35,15 @@ outputs:
       The resolved version that the current build can use.
       The version will usually be semver compliant only for releases.
     value: ${{ steps.metadata.outputs.version }}
+  qualifier:
+    description: |
+      A qualifier tag describing this build. It can be used as npm tag.
+      Released semver tag are qualified as 'latest'
+      Other tag are qualified with their own name.
+      Default branch is qualified 'snapshot'
+      Other branches are qualified 'branch-BRANCH_NAME'
+      PR are qualified 'pr-NUMBER'
+      Any other build is qualified 'dev'
 
 runs:
   using: composite
@@ -57,6 +66,7 @@ runs:
         IS_RELEASE=false
         VERSION=0.0.0-SNAPSHOT
         DEFAULT_BRANCH=${{ github.event.repository.default_branch }}
+        QUALIFIER=dev
 
         LATEST_VERSION=${{ steps.latest.outputs.tag }}
         LATEST_VERSION=${LATEST_VERSION#v}
@@ -71,20 +81,26 @@ runs:
           VERSION=${GITHUB_REF#refs/tags/v}
           PUBLISHABLE=$(git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DEFAULT_BRANCH" && echo "true" || echo "false")
           IS_RELEASE="$PUBLISHABLE"
+          QUALIFIER=latest
         elif [[ $GITHUB_REF == refs/tags/* ]]; then
           VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed -r 's#/+#-#g')
+          QUALIFIER="$VERSION"
         elif [[ $GITHUB_REF == refs/heads/* ]]; then
           BRANCH=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
           if [ "$DEFAULT_BRANCH" = "$BRANCH" ]; then
             VERSION=${LATEST_VERSION%.*}.$((${LATEST_VERSION##*.} + 1))-SNAPSHOT
             PUBLISHABLE=true
+            QUALIFIER=snapshot
           else
             VERSION=branch-$BRANCH
+            QUALIFIER="$VERSION"
           fi
         elif [[ $GITHUB_REF == refs/pull/* ]]; then
           VERSION=pr-${{ github.event.number }}
+          QUALIFIER="$VERSION"
         fi
 
         echo ::set-output name=is-release::$IS_RELEASE
         echo ::set-output name=publishable::$PUBLISHABLE
         echo ::set-output name=version::$VERSION
+        echo ::set-output name=qualifier::$QUALIFIER
