@@ -85,7 +85,7 @@ runs:
         elif [[ $GITHUB_REF == refs/heads/* ]]; then
           BRANCH=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
           if [ "$DEFAULT_BRANCH" = "$BRANCH" ]; then
-            VERSION=${LATEST_VERSION%.*}.$((${LATEST_VERSION##*.} + 1))-$(date -u "+%Y%m%d%H%M%S")
+            VERSION=${LATEST_VERSION%.*}.$((${LATEST_VERSION##*.} + 1))-snapshot.$(date -u "+%Y%m%d%H%M%S")
             PUBLISHABLE=true
             NPM_TAG=snapshot
           else
