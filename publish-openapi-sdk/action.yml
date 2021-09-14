@@ -1,0 +1,66 @@
+name: Publish openapi SDK
+description: Run a gradle publish openapi sdk task.
+
+inputs:
+  publish-task-name:
+    description: 'Gradle publish task name. ex: publishMicronautSdk'
+    required: true
+  version:
+    description: 'Version name. ex: 1.2.3. See application-metadata output.'
+    required: true
+  is-release:
+    description: true if this version is a tagged release. See application-metadata output.
+    required: false
+    default: 'false'
+  openapi-spec-file:
+    description: Optionnal openapi.yaml spec file path.
+    required: false
+    default: ""
+  build-root-directory:
+    description: Gradle build root directory
+    required: false
+    default: ""
+  ghcr-user:
+    description: GHCR_USER
+    required: true
+  ghcr-token:
+    description: GHCR_TOKEN
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Git Author
+      shell: bash
+      run: |
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+
+    - name: Lookup properties
+      id: properties
+      shell: bash
+      run: |
+        PROPERTIES=(
+          application.version=${{ inputs.version }}
+          is-release=${{ inputs.is-release }}
+          gpr.user=${{ inputs.ghcr-user }}
+          gpr.key=${{ inputs.ghcr-token }}
+          gpr.write.key=${{ inputs.ghcr-token }}
+        )
+        if [[ "${{ inputs.openapi-spec-file }}" != "" ]]; then
+          echo "BOUM";
+          PROPERTIES+=(openApiSpec=${{ inputs.openapi-spec-file }});
+        fi
+        echo "${{ inputs.openapi-spec-file }}"
+        echo "${PROPERTIES[@]}"
+        echo "::set-output name=properties::${PROPERTIES[@]}"
+
+    # Build SDK
+    - name: Publish SDK
+      uses: burrunan/gradle-cache-action@v1.10
+      with:
+        gradle-version: wrapper
+        gradle-dependencies-cache-key: buildSrc/**/Dependencies.kt
+        arguments: ${{ inputs.publish-task-name }}
+        build-root-directory: ${{ inputs.build-root-directory }}
+        properties: ${{ steps.properties.outputs.properties }}
