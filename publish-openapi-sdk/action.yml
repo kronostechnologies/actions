@@ -48,14 +48,12 @@ runs:
           gpr.write.key=${{ inputs.ghcr-token }}
         )
         if [[ "${{ inputs.openapi-spec-file }}" != "" ]]; then
-          echo "BOUM";
           PROPERTIES+=(openApiSpec=${{ inputs.openapi-spec-file }});
         fi
-        echo "${{ inputs.openapi-spec-file }}"
-        echo "${PROPERTIES[@]}"
-        echo "::set-output name=properties::${PROPERTIES[@]}"
+        echo "PROPERTIES<<EOF" >> $GITHUB_ENV
+        printf "%s\n" "${PROPERTIES[@]}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
-    # Build SDK
     - name: Publish SDK
       uses: burrunan/gradle-cache-action@v1.10
       with:
@@ -63,4 +61,4 @@ runs:
         gradle-dependencies-cache-key: buildSrc/**/Dependencies.kt
         arguments: ${{ inputs.publish-task-name }}
         build-root-directory: ${{ inputs.build-root-directory }}
-        properties: ${{ steps.properties.outputs.properties }}
+        properties: ${{ env.PROPERTIES }}
