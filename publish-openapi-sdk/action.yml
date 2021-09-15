@@ -1,0 +1,61 @@
+name: Publish openapi SDK
+description: Run a gradle publish openapi sdk task.
+
+inputs:
+  publish-task-name:
+    description: 'Gradle publish task name. ex: publishMicronautSdk'
+    required: true
+  version:
+    description: 'Version name. ex: 1.2.3. See application-metadata output.'
+    required: true
+  is-release:
+    description: true if this version is a tagged release. See application-metadata output.
+    required: false
+    default: 'false'
+  openapi-spec-file:
+    description: Optionnal openapi.yaml spec file path.
+    required: false
+    default: ""
+  build-root-directory:
+    description: Gradle build root directory
+    required: false
+    default: ""
+  gpr-token:
+    description: 'GitHub token with package:write access'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Git Author
+      shell: bash
+      run: |
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+
+    - name: Lookup properties
+      id: properties
+      shell: bash
+      run: |
+        PROPERTIES=(
+          application.version=${{ inputs.version }}
+          is-release=${{ inputs.is-release }}
+          gpr.user=github-actions
+          gpr.key=${{ inputs.gpr-token }}
+          gpr.write.key=${{ inputs.gpr-token }}
+        )
+        if [[ "${{ inputs.openapi-spec-file }}" != "" ]]; then
+          PROPERTIES+=(openApiSpec=${{ inputs.openapi-spec-file }});
+        fi
+        echo "PROPERTIES<<EOF" >> $GITHUB_ENV
+        printf "%s\n" "${PROPERTIES[@]}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    - name: Publish SDK
+      uses: burrunan/gradle-cache-action@v1.10
+      with:
+        gradle-version: wrapper
+        gradle-dependencies-cache-key: buildSrc/**/Dependencies.kt
+        arguments: ${{ inputs.publish-task-name }}
+        build-root-directory: ${{ inputs.build-root-directory }}
+        properties: ${{ env.PROPERTIES }}
