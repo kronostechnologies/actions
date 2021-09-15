@@ -20,11 +20,8 @@ inputs:
     description: Gradle build root directory
     required: false
     default: ""
-  ghcr-user:
-    description: GHCR_USER
-    required: true
-  ghcr-token:
-    description: GHCR_TOKEN
+  gpr-token:
+    description: 'GitHub token with package:write access'
     required: true
 
 runs:
@@ -43,9 +40,9 @@ runs:
         PROPERTIES=(
           application.version=${{ inputs.version }}
           is-release=${{ inputs.is-release }}
-          gpr.user=${{ inputs.ghcr-user }}
-          gpr.key=${{ inputs.ghcr-token }}
-          gpr.write.key=${{ inputs.ghcr-token }}
+          gpr.user=github-actions
+          gpr.key=${{ inputs.gpr-token }}
+          gpr.write.key=${{ inputs.gpr-token }}
         )
         if [[ "${{ inputs.openapi-spec-file }}" != "" ]]; then
           PROPERTIES+=(openApiSpec=${{ inputs.openapi-spec-file }});
