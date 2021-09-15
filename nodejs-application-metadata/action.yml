@@ -16,7 +16,10 @@ description: |
       uses: .github/actions/nodejs-application-metadata
   ```
 
-inputs: {}
+inputs:
+  release-branch:
+    description: Branch allowed for release. Default to the repository default branch.
+    required: false
 
 outputs:
   publishable:
@@ -64,6 +67,7 @@ runs:
         IS_RELEASE=false
         VERSION=0.0.0-SNAPSHOT
         DEFAULT_BRANCH=${{ github.event.repository.default_branch }}
+        RELEASE_BRANCH=${{ inputs.release-branch }}
         NPM_TAG=
 
         LATEST_VERSION=${{ steps.latest.outputs.tag }}
@@ -75,9 +79,13 @@ runs:
           DEFAULT_BRANCH="${GITHUB_REF#refs/heads/}"
         fi
 
+        if [[ "$RELEASE_BRANCH" == "" ]]; then
+          RELEASE_BRANCH="$DEFAULT_BRANCH"
+        fi
+
         if [[ $GITHUB_REF =~ refs/tags/v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
           VERSION=${GITHUB_REF#refs/tags/v}
-          PUBLISHABLE=$(git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DEFAULT_BRANCH" && echo "true" || echo "false")
+          PUBLISHABLE=$(git merge-base --is-ancestor "$GITHUB_SHA" "origin/$RELEASE_BRANCH" && echo "true" || echo "false")
           IS_RELEASE="$PUBLISHABLE"
           NPM_TAG=latest
         elif [[ $GITHUB_REF == refs/tags/* ]]; then
