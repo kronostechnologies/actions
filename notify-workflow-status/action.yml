@@ -4,40 +4,57 @@ description: |
 
   ```yaml
   steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Find workflow status
-      id: workflow
-      shell: bash
-      run: |
-        STATUS=success
-        if [[ "$ {{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
-          STATUS=cancelled
-        elif [[ "$ {{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
-          STATUS=failure
-        fi
-
-        echo ::set-output name=status::$STATUS
     - name: Post status to Slack
       uses: kronostechnologies/actions/notify-workflow-status@v1
       with:
+        needs: $ {{ toJSON(needs) }}
         slack-webhook-url: "some url generated on slack"
-        workflow-status: $ {{ steps.workflow.outputs.status }}
   ```
 
 inputs:
+  allow-statuses:
+    description: |
+      List of statuses for which notifications will be published.
+      Allowed values are success, cancelled and failure.
+      Defaults to only failure.
+    required: false
+    default: failure
+  needs:
+    description: |
+      The GitHub Actions `needs` context which should be passed in using toJSON():
+      `$ {{ toJSON(needs) }}`
+    required: false
   slack-webhook-url:
     description: The Slack webhook that will receive our notifications.
     required: true
   workflow-status:
-    description: The workflow status. Must be one of success, cancelled or failure.
-    required: true
+    description: |
+      The workflow status. Must be one of success, cancelled or failure.
+      If specified, it has precedence over `needs`.
+    required: false
 
 runs:
   using: composite
   steps:
+    - name: Find workflow status
+      id: workflow
+      shell: bash
+      run: |
+        STATUS=unknown
+        if ${{ toJSON(inputs.workflow-status == 'cancelled' || contains(fromJSON(inputs.needs).*.result, 'cancelled')) }}; then
+          STATUS=cancelled
+        elif ${{ toJSON(inputs.workflow-status == 'failure' || contains(fromJSON(inputs.needs).*.result, 'failure')) }}; then
+          STATUS=failure
+        elif ${{ toJSON(inputs.workflow-status == 'success' || contains(fromJSON(inputs.needs).*.result, 'success')) }}; then
+          STATUS=success
+        fi
+
+        echo ::set-output name=status::$STATUS
+
     - name: Post status to Slack
       uses: 8398a7/action-slack@v3.9.2
+      # TODO: Blocked by https://github.com/actions/runner/issues/834
+      #  if: contains(inputs.allow-statuses, steps.workflow.outputs.status)
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
       with:
@@ -47,8 +64,8 @@ runs:
         custom_payload: |
           {
             attachments: [{
-              color: '${{ inputs.workflow-status }}' === 'success' ? 'good' : '${{ inputs.workflow-status }}' === 'failure' ? 'danger' : '#999999',
-              text: `${process.env.AS_REPO}/${process.env.AS_WORKFLOW}: ${{ inputs.workflow-status }}!`,
+              color: '${{ steps.workflow.outputs.status }}' === 'success' ? 'good' : '${{ steps.workflow.outputs.status }}' === 'failure' ? 'danger' : '#999999',
+              text: `${process.env.AS_REPO}/${process.env.AS_WORKFLOW}: ${{ steps.workflow.outputs.status }}!`,
               fields: [
                 {
                   title: 'Ref',
