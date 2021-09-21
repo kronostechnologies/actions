@@ -37,6 +37,10 @@ if [[ "$ACTION_ONLY_CHANGED_FILES" == "yes" ]] ; then
         # NOTE:
         # `|| :` is used to avoid exit by grep, when no line matches the pattern.
         CHANGED_FILES=$(git diff $DIFF_TARGET --diff-filter=AM --name-only --no-color | grep -e "\.php" || :)
+        if [[ $? -gt 0  ]]; then
+            exit 1;
+        fi
+
         NUM_CHANGED_FILES=$(echo "$CHANGED_FILES" | grep -v -e '^\s*$' | wc -l || :)
         if [[ $NUM_CHANGED_FILES -le 0 ]] ; then
             echo "No file changes. Skip psalm."

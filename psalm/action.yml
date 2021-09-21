@@ -1,5 +1,26 @@
 name: PSALM (php-actions)
-description: PHP Static Analysis in Github Actions.
+description: |
+  PHP Static Analysis in Github Actions.
+
+  This action needs origin/master to be available by checkout and composer install.
+
+  ```yaml
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1000
+
+    - name : Fetch origin/master
+      run : |
+        git fetch --no-tags --prune --depth=1000 origin +refs/heads/master:refs/remotes/origin/master
+
+    - name : Install dependencies
+      uses : php-actions/composer@v6
+
+    - name : Psalm
+      uses : kronostechnologies/actions/psalm@v0.0.8
+  ```
 
 inputs:
   php_version:

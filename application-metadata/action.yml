@@ -18,7 +18,17 @@ description: |
 
 inputs:
   release-branch:
-    description: Branch allowed for release. Default to the repository default branch.
+    description: |
+      Branch allowed for release. Default to the repository default branch.
+
+      Make shure the branch is available with git fetch.
+
+      ```yaml
+      - name : Fetch origin/stable/main (for action-metadata commit check)
+        run : |
+          git fetch --no-tags --prune --depth=1000 origin +refs/heads/stable/main:refs/remotes/origin/stable/main
+      ```
+
     required: false
 
 outputs:
