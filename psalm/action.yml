@@ -18,14 +18,6 @@ description: |
       uses : kronostechnologies/actions/psalm@v0.0.8
   ```
 
-  If fetch-depth is not set or greater than 0 you can add a step to fetch the origin/master branch
-
-  ```yaml
-  - name : Fetch origin/master
-    run : |
-      git fetch --no-tags --prune --depth=1000 origin +refs/heads/master:refs/remotes/origin/master
-  ```
-
 inputs:
   php_version:
     description: What version of PHP to use
@@ -45,7 +37,17 @@ inputs:
     required: false
 
   only_changed_files:
-    description : "Run psalm analysis only on changed files compared to master. Or previous commit for master branch."
+    description : |
+      Run psalm analysis only on changed files compared to master. Or previous commit for master branch.
+
+      With this option, if fetch-depth is not set or greater than 0 you can add a step to fetch the origin/master branch
+
+      ```yaml
+      - name : Fetch origin/master
+        run : |
+          git fetch --no-tags --prune --depth=1000 origin +refs/heads/master:refs/remotes/origin/master
+      ```
+
     required : false
     default : false
 
