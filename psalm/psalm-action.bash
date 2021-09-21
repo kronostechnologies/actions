@@ -33,11 +33,8 @@ if [[ "$ACTION_ONLY_CHANGED_FILES" == "yes" ]] ; then
             DIFF_TARGET="origin/master..."
         fi
 
-        git rev-parse $DIFF_TARGET > /dev/null 2>&1
-        if [[ $? -gt 0  ]]; then
-            echo "$DIFF_TARGET not found. You probably need a git fetch step." > /dev/stderr
-            exit 1;
-        fi
+        # Allow to fail early if DIFF_TARGET not found on repo
+        git rev-parse $DIFF_TARGET > /dev/null 2>&1 || { echo "Diff target not found '$DIFF_TARGET'. You probably miss a git fetch step." > /dev/stderr; exit 1; }
 
         # Get changed files which match the pattern.
         # NOTE:
