@@ -9,17 +9,21 @@ description: |
     - name: Checkout
       uses: actions/checkout@v2
       with:
-        fetch-depth: 1000
-
-    - name : Fetch origin/master
-      run : |
-        git fetch --no-tags --prune --depth=1000 origin +refs/heads/master:refs/remotes/origin/master
+        fetch-depth: 0
 
     - name : Install dependencies
       uses : php-actions/composer@v6
 
     - name : Psalm
       uses : kronostechnologies/actions/psalm@v0.0.8
+  ```
+
+  If fetch-depth is not set or greater than 0 you can add a step to fetch the origin/master branch
+
+  ```yaml
+  - name : Fetch origin/master
+    run : |
+      git fetch --no-tags --prune --depth=1000 origin +refs/heads/master:refs/remotes/origin/master
   ```
 
 inputs:
