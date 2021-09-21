@@ -33,14 +33,16 @@ if [[ "$ACTION_ONLY_CHANGED_FILES" == "yes" ]] ; then
             DIFF_TARGET="origin/master..."
         fi
 
+        git rev-parse $DIFF_TARGET > /dev/null 2>&1
+        if [[ $? -gt 0  ]]; then
+            echo "$DIFF_TARGET not found. You probably need a git fetch step." > /dev/stderr
+            exit 1;
+        fi
+
         # Get changed files which match the pattern.
         # NOTE:
         # `|| :` is used to avoid exit by grep, when no line matches the pattern.
         CHANGED_FILES=$(git diff $DIFF_TARGET --diff-filter=AM --name-only --no-color | grep -e "\.php" || :)
-        if [[ $? -gt 0  ]]; then
-            exit 1;
-        fi
-
         NUM_CHANGED_FILES=$(echo "$CHANGED_FILES" | grep -v -e '^\s*$' | wc -l || :)
         if [[ $NUM_CHANGED_FILES -le 0 ]] ; then
             echo "No file changes. Skip psalm."
