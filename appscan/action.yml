@@ -1,0 +1,53 @@
+name: Prepare and upload an AppScan run
+description: Prepare and upload an AppScan run
+
+inputs:
+  key-id:
+    description: The key ID used to authenticate with AppScan.
+    required: true
+  key-secret:
+    description: The key secret used to authenticate with AppScan.
+    required: true
+  project-id:
+    description: The project ID to publish the AppScan run to.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Compute job data
+      shell: bash
+      id: job-data
+      run: |
+        echo "::set-output name=cache-key::appscan-client-${{ runner.os }}-$(printf '%(%Y%m)T' -1)"
+
+    - name: Load AppScan client from cache
+      uses: actions/cache@v2.1.6
+      id: appscan-cache
+      with:
+        key: ${{ steps.job-data.outputs.cache-key }}
+        path: appscan-client.zip
+
+    - name: AppScan
+      shell: bash
+      run: |
+        echo "::group::Downloading AppScan client"
+        if ${{ toJSON(steps.appscan-cache.outputs.cache-hit != 'true') }}; then
+          curl -SL "https://cloud.appscan.com/api/SCX/StaticAnalyzer/SAClientUtil?os=linux" -o appscan-client.zip
+        fi
+
+        unzip appscan-client.zip
+        mv SAClientUtil* appscan-client
+        echo "::endgroup::"
+
+        echo "::group::Log in to AppScan"
+        ./appscan-client/bin/appscan.sh api_login -u "${{ inputs.key-id }}" -P "${{ inputs.key-secret }}"
+        echo "::endgroup::"
+
+        echo "::group::Prepare AppScan run"
+        ./appscan-client/bin/appscan.sh prepare --sourceCodeOnly
+        echo "::endgroup::"
+
+        echo "::group::Upload AppScan run"
+        ./appscan-client/bin/appscan.sh queue_analysis -nen -a "${{ inputs.project-id }}"
+        echo "::endgroup::"
