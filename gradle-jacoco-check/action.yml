@@ -1,0 +1,73 @@
+name: Run a gradle task and upload reports
+description: |
+  Run a gradle task expecting JaCoCo reports to be produced. The exported reports will follow naming conventions
+  detailed by our ADRs (https://confluence.equisoft.com/display/HRMI/ADR).
+
+  Coverage details will be added as comments on pull requests.
+
+inputs:
+  enable-coverage-comment:
+    description: Post coverage results as a comment on the Pull Request. Defaults to `true`.
+    required: true
+    default: "true"
+  gradle-properties:
+    description: Content of a gradle.properties file that will be passed to the gradle runner.
+    required: false
+  gradle-project-path:
+    description: |
+      Gradle project path. For example: bff.
+      Defaults to the root project.
+    required: true
+    default: "."
+  report-name:
+    description: The name of the archived report. It must follow the convention detailed by our ADRs.
+    required: true
+    default: kotlin-test-coverage.jacoco.xml
+  report-retention-days:
+    description: Duration in days to preserve reports.
+    required: true
+    default: "5"
+  task-name:
+    description: The JaCoCo task name. Defaults to "ci-coverage-verification".
+    required: true
+    default: ci-coverage-verification
+  working-directory:
+    description: Relative path under $GITHUB_WORKSPACE where the root project is located.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Download jacoco build
+      uses: actions/download-artifact@v2
+      with:
+        name: jacoco-build
+        path: ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }}/build/jacoco/
+
+    - name: Validate coverage
+      uses: burrunan/gradle-cache-action@v1.10
+      with:
+        gradle-version: wrapper
+        build-root-directory: ${{ inputs.working-directory }}
+        gradle-dependencies-cache-key: |
+          buildSrc/**/Dependencies.kt
+        arguments: -p ${{ inputs.gradle-project-path }} ${{ inputs.task-name }}
+        properties: ${{ inputs.gradle-properties }}
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v2
+      if: github.action_status != 'cancelled'
+      with:
+        name: ${{ inputs.report-name }}
+        retention-days: ${{ inputs.report-retention-days }}
+        path: ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }}/build/reports/jacoco/test/jacocoTestReport.xml
+
+    - name: Create annotations
+      uses: madrapps/jacoco-report@v1.2
+      if: inputs.enable-coverage-comment == 'true' && github.action_status != 'cancelled' && github.actor != 'dependabot[bot]'
+      with:
+        paths: ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }}/build/reports/jacoco/test/jacocoTestReport.xml
+        token: ${{ github.token }}
+        min-coverage-overall: 60
+        min-coverage-changed-files: 80
