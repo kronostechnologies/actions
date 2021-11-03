@@ -27,22 +27,17 @@ runs:
 
     - name: Install asdf-vm tools
       uses: asdf-vm/actions/install@v1.1.0
-      # TODO: Waiting for `if` support https://github.com/actions/runner/issues/834
-      #  if: steps.cache.outputs.cache-hit != 'true'
+      if: steps.cache.outputs.cache-hit != 'true'
       with:
         before_install: |
-          if [[ "${{ steps.cache.outputs.cache-hit }}" != true ]] && [ -f "${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring" ]; then
+          if [ -f "${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring" ]; then
             ${ASDF_DIR}/plugins/nodejs/bin/import-release-team-keyring
           fi
 
     - name: Reshim asdf-vm tools
-      # TODO: Waiting for `if` support https://github.com/actions/runner/issues/834
-      #  if: steps.cache.outputs.cache-hit == 'true'
+      if: steps.cache.outputs.cache-hit == 'true'
       shell: bash
-      run: |
-        if [[ "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
-          asdf reshim
-        fi
+      run: asdf reshim
 
     - name: Switch to the asdf-provided version of java
       shell: bash
