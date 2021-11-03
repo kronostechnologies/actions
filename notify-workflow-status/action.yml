@@ -53,8 +53,7 @@ runs:
 
     - name: Post status to Slack
       uses: 8398a7/action-slack@v3.9.2
-      # TODO: Blocked by https://github.com/actions/runner/issues/834
-      #  if: contains(inputs.allow-statuses, steps.workflow.outputs.status)
+      if: contains(inputs.allow-statuses, steps.workflow.outputs.status)
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
       with:
