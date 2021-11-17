@@ -1,0 +1,63 @@
+name: Run eslint through yarn and upload report
+description: |
+  Run a yarn task expecting eslint reports to be produced. The exported reports will follow naming conventions
+  detailed by our ADRs (https://confluence.equisoft.com/display/HRMI/ADR).
+
+  A report named `build/eslint/junit.xml` is expected under all circumstances.
+
+  Errors will be annotated on pull requests.
+
+inputs:
+  enable-annotations:
+    description: |
+      Annotate files with eslint errors, in which case a `build/eslint/report.sarif` file is expected.
+      This is the default behavior for projects that branched off webapp-boilerplate.
+      Defaults to `true`.
+    required: true
+    default: "true"
+  report-name:
+    description: The name of the archived report. It must follow the convention detailed by our ADRs.
+    required: true
+    default: eslint.junit.xml
+  report-retention-days:
+    description: Duration in days to preserve reports. Defaults to 5.
+    required: true
+    default: "5"
+  task-name:
+    description: The task name. Defaults to "eslint:ci".
+    required: true
+    default: eslint:ci
+  working-directory:
+    description: Relative path under $GITHUB_WORKSPACE where the project is located.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Action context
+      shell: bash
+      id: context
+      run: |
+        echo "::set-output name=working-directory::$(realpath ${{ inputs.working-directory }})"
+
+    - name: Run ESLint
+      shell: bash
+      working-directory: ${{ steps.context.outputs.working-directory }}
+      run: yarn ${{ inputs.task-name }}
+
+    - name: Upload report
+      uses: actions/upload-artifact@v2
+      if: "!cancelled()"
+      with:
+        name: ${{ inputs.report-name }}
+        retention-days: ${{ inputs.report-retention-days }}
+        if-no-files-found: error
+        path: ${{ steps.context.outputs.working-directory }}/build/eslint/junit.xml
+
+    - name: Create annotations
+      if: "!cancelled() && inputs.enable-annotations == 'true' && github.actor != 'dependabot[bot]'"
+      uses: ataylorme/eslint-annotate-action@1.2.0
+      with:
+        repo-token: ${{ github.token }}
+        report-json: ${{ steps.context.outputs.working-directory }}/build/eslint/report.json
