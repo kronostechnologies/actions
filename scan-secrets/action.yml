@@ -36,7 +36,7 @@ runs:
 
     - name: Upload results
       uses: actions/upload-artifact@v2
-      if: github.action_status == 'failure'  # gitleaks only exports a SARIF file when leaks are detected
+      if: failure()  # gitleaks only exports a SARIF file when leaks are detected
       with:
         name: secrets-scan.sarif
         retention-days: ${{ inputs.report-retention-days }}
