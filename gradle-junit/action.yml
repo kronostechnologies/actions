@@ -51,7 +51,7 @@ runs:
 
     - name: Upload report
       uses: actions/upload-artifact@v2
-      if: github.action_status != 'cancelled'
+      if: "!cancelled()"
       with:
         name: ${{ inputs.task-name }}-report
         retention-days: ${{ inputs.report-retention-days }}
@@ -60,7 +60,7 @@ runs:
 
     - name: Upload results
       uses: actions/upload-artifact@v2
-      if: github.action_status != 'cancelled'
+      if: "!cancelled()"
       with:
         name: ${{ inputs.task-name }}-results
         retention-days: 1
@@ -71,7 +71,7 @@ runs:
 
     - name: Upload coverage results
       uses: actions/upload-artifact@v2
-      if: github.action_status != 'cancelled'
+      if: "!cancelled()"
       with:
         name: jacoco-build
         retention-days: 1
@@ -81,7 +81,7 @@ runs:
 
     - name: Create annotations
       uses: mikepenz/action-junit-report@v2.5.1
-      if: github.action_status != 'cancelled' && github.actor != 'dependabot[bot]'
+      if: "!cancelled() && github.actor != 'dependabot[bot]'"
       with:
         check_name: ${{ inputs.task-name }} report
         report_paths: |
