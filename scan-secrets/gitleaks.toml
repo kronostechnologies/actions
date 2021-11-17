@@ -1,0 +1,9 @@
+# This file is read by external tools. Do not move.
+
+[allowlist]
+description = "We do not care about these potential leaks. They are either mock data or dependencies."
+paths = [
+    '''\.yarn/''',
+    '''build/''',
+    '''node_modules/''',
+]
