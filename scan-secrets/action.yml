@@ -3,11 +3,6 @@ description: |
   Scan commits for leaked secrets.
   By default, pull request events will only scan new commits and push events will scan all commits.
 
-# TODO: Improve efficiency of this action:
-#   - Automatically sync. gitleaks.bash & gitleaks.toml from standards to here. See https://github.com/BetaHuhn/repo-file-sync-action
-#   - This should `runs-on: Dockerfile` based on gitleaks official image. Docker pulls in a bash script don't use cache.
-#     - Alternative is to use actions/cache to cache the gitleaks image.
-
 inputs:
   report-retention-days:
     description: Duration in days to preserve reports.
@@ -26,7 +21,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       shell: bash
       run: |
-        curl -sSL https://raw.githubusercontent.com/kronostechnologies/standards/master/bin/gitleaks.bash | bash
+        ${{ github.action_path }}/files/gitleaks.bash ${{ github.action_path }}/files/gitleaks.toml
 
         result=$?
         echo "::set-output name=status::$result"
@@ -40,5 +35,4 @@ runs:
       with:
         name: secrets-scan.sarif
         retention-days: ${{ inputs.report-retention-days }}
-        path: |
-          ${{ inputs.working-directory }}/build/gitleaks/gitleaks.sarif
+        path: ${{ inputs.working-directory }}/build/gitleaks/gitleaks.sarif
