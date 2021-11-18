@@ -1,6 +1,6 @@
-name: Run a Gradle Dependency Check scan
+name: Run a Gradle license Check
 description: |
-  Run a Gradle Dependency Check scan on the project.
+  Check Gradle dependencies licenses on the project.
   This action requires the global-conventions plugin to be installed.
   See https://github.com/kronostechnologies/standards/tree/master/gradle/global-conventions
 
@@ -12,18 +12,14 @@ inputs:
     description: Relative path under $GITHUB_WORKSPACE where the root project is located.
     required: false
     default: "."
-  report-name:
-    description: The name of the archived report.
-    required: true
-    default: dependency-check-report
   report-retention-days:
     description: Duration in days to preserve reports.
     required: true
     default: "5"
   task-name:
-    description: The DependencyCheck task name. Defaults to "dependencyCheckAggregate".
+    description: The license check task name. Defaults to "checkLicense".
     required: true
-    default: dependencyCheckAggregate
+    default: checkLicense
 
 runs:
   using: composite
@@ -34,6 +30,7 @@ runs:
       run: |
         working_directory=$(realpath ${{ inputs.working-directory }})
         echo "::set-output name=working-directory::$working_directory"
+        echo "::set-output name=reports-directory::$working_directory/build/reports/dependency-license"
 
     - name: Scan Gradle dependencies
       uses: burrunan/gradle-cache-action@v1.10
@@ -45,10 +42,18 @@ runs:
         arguments: ${{ inputs.task-name }}
         properties: ${{ inputs.gradle-properties }}
 
-    - name: Upload SARIF and HTML reports
+    - name: Upload license inventory report
       uses: actions/upload-artifact@v2
       if: "!cancelled()"
       with:
-        name: ${{ inputs.report-name }}
+        name: License inventory report
         retention-days: ${{ inputs.report-retention-days }}
-        path: ${{ steps.context.outputs.working-directory }}/build/reports/dependency-check-report.*
+        path: ${{ steps.context.outputs.reports-directory }}/license-inventory-report.html
+
+    - name: Upload dependencies without allowed license report
+      uses: actions/upload-artifact@v2
+      if: "!cancelled()"
+      with:
+        name: Dependencies without allowed licenses
+        retention-days: ${{ inputs.report-retention-days }}
+        path: ${{ steps.context.outputs.reports-directory }}/dependencies-without-allowed-license.json
