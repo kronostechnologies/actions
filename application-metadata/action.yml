@@ -21,7 +21,7 @@ inputs:
     description: |
       Branch allowed for release. Default to the repository default branch.
 
-      Make shure the branch is available with git fetch (if fetch-depth is unset or > 0)
+      Make sure the branch is available with git fetch (if fetch-depth is unset or > 0)
 
       ```yaml
       - name : Fetch origin/stable/main (for action-metadata commit check)

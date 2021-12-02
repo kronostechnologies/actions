@@ -35,7 +35,9 @@ inputs:
     description: The SemVer compatible version for this image, without prefixes.
     required: true
   working-directory:
-    description: Relative path under $GITHUB_WORKSPACE where the project is located.
+    description: >-
+      Relative path under $GITHUB_WORKSPACE where the project is located.
+      This also acts as the context given to the docker build command.
     required: false
     default: "."
 
@@ -44,7 +46,7 @@ runs:
   steps:
     - name: Prepare image data
       id: metadata
-      uses: kronostechnologies/actions/docker-metadata@v0.0.13
+      uses: kronostechnologies/actions/docker-metadata@v0.0.17
       with:
         title: ${{ inputs.name }}
         image-name: ${{ inputs.aws-ecr-registry }}/${{ inputs.name }}
@@ -72,7 +74,7 @@ runs:
         build-args: ${{ inputs.build-args }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        context: .
+        context: ${{ inputs.working-directory }}
         file: ${{ inputs.working-directory }}/${{ inputs.dockerfile }}
         push: ${{ inputs.push == 'true' }}
         tags: ${{ steps.metadata.outputs.tags }}
