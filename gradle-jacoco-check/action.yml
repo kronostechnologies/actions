@@ -65,7 +65,7 @@ runs:
 
     - name: Create annotations
       uses: madrapps/jacoco-report@v1.2
-      if: "!cancelled() && inputs.enable-coverage-comment == 'true' && github.actor != 'dependabot[bot]'"
+      if: "!cancelled() && inputs.enable-coverage-comment == 'true' && github.actor != 'dependabot[bot]' && github.event_name == 'pull_request'"
       with:
         paths: ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }}/build/reports/jacoco/test/jacocoTestReport.xml
         token: ${{ github.token }}
