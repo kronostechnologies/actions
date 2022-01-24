@@ -20,6 +20,10 @@ inputs:
       Defaults to the root project.
     required: true
     default: "."
+  is-release:
+    description: true if this version is a tagged release.
+    required: false
+    default: 'false'
   openapi-spec-file:
     description: Optionnal openapi.yaml spec file path.
     required: false
@@ -43,7 +47,9 @@ runs:
       id: properties
       shell: bash
       run: |
-        PROPERTIES=()
+        PROPERTIES=(
+          is-release=${{ inputs.is-release }}
+        )
         TASK=build
 
         GENERATOR=${{ inputs.generator-name }}
