@@ -436,6 +436,7 @@ regexes = [
 ]
 paths = [
     '''\.yarn/''',
+    '''\.pnp.js''',
     '''build/''',
     '''node_modules/''',
     '''(.*?)\.(jpg|gif|doc|pdf|bin|svg|socket)$''',
