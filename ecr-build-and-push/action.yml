@@ -20,6 +20,10 @@ inputs:
     description: Arguments passed to the build command.
     required: false
     default: ""
+  context:
+    description: Relative path under $GITHUB_WORKSPACE for the Docker context.
+    required: false
+    default: "."
   dockerfile:
     description: Relative Dockerfile under `working-directory`.
     required: true
@@ -44,6 +48,11 @@ inputs:
       This also acts as the context given to the docker build command.
     required: false
     default: "."
+
+outputs:
+  image-version:
+    description: Image version built by this action
+    value: ${{ steps.outputs.outputs.image-version }}
 
 runs:
   using: composite
@@ -78,8 +87,16 @@ runs:
         build-args: ${{ inputs.build-args }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        context: ${{ inputs.working-directory }}
+        context: ${{ inputs.context }}
         file: ${{ inputs.working-directory }}/${{ inputs.dockerfile }}
         push: ${{ inputs.push == 'true' }}
         tags: ${{ steps.metadata.outputs.tags }}
         labels: ${{ steps.metadata.outputs.labels }}
+
+    - name: Output image tag
+      id: outputs
+      shell: bash
+      run: |
+        IMAGE_TAG=$(cut -d',' -f1 <<<'${{ steps.metadata.outputs.tags }}')
+        IMAGE_VERSION=$(cut -d':' -f2 <<<"${IMAGE_TAG}")
+        echo "::set-output name=image-version::${IMAGE_VERSION}"
