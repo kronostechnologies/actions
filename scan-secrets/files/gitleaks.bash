@@ -31,7 +31,7 @@ else
 fi
 OPTIONS+=("--config=$CONTAINER_PATH/$BUILD_OUTPUT/gitleaks.toml")
 
-if [[ -v CI ]]; then
+if [[ -n "${CI:-}" ]]; then
     OPTIONS+=("--redact")
 
     if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
